@@ -1,0 +1,283 @@
+---
+title: "Yampa Valley 2022 CHNA Survey Analysis"
+author: "Nicole Harty"
+date: "4/11/2022"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    css: template.css
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(lubridate)
+library(likert)
+library(kableExtra)
+library(plotly)
+library(janitor)
+library(imager)
+library(openxlsx)
+
+source("SurveyDataCleanWrangle.R")
+
+
+```
+
+
+```{r label=logo}
+htmltools::img(src = knitr::image_uri("RouttPHlogo.png"),
+alt = 'logo',
+style = 'position:absolute; top:105px; right:125px; padding:5px; width: 200px; height: 100px')
+```
+
+```{r label=NumbersToReference}
+TotalRouttRespondents <- Demos %>% filter(County=="Routt") %>% summarise(n_distinct(ResponseID)) %>% pull()
+```
+
+A total of **`r Demos %>% summarise(n_distinct(ResponseID)) %>% pull()`** people responded to the Yampa Valley Community Health Needs Assessment Survey. Of these, **`r Demos %>% filter(County=="Routt") %>% summarise(n_distinct(ResponseID)) %>% pull()`** live in Routt County.  
+
+# CHNA Survey Respondent Demographics  
+
+```{r label=Demos, results='asis'}
+DemosColumns <- ncol(Demos)
+DemosColumnNames <- colnames(Demos)
+for (i in 2:DemosColumns) {
+  Demos %>%
+    filter(County=="Routt") %>%
+    group_by_at(i) %>%
+    summarise(Count = n()) %>%
+    mutate(Percentage = scales::percent(Count/sum(Count))) %>%
+    arrange(Count) %>%
+    kable(caption = paste0("Summary of Routt County CHNA Survey Respondents by ",DemosColumnNames[[i]])) %>%
+    print()
+}
+```
+
+# Response Summaries  
+
+## Factors Important for Healthy Community
+Includes data from the following survey questions:  
+
+- Select the three most important factors for a Healthy Community.  
+- Select the three most important factors for a Healthy Community. OPEN ENDED  
+- Select the three factors which you feel you would like to see more of in Yampa Valley.  
+- Select the three factors which you feel you would like to see more of in Yampa Valley. OPEN ENDED  
+- Level of agreement with specific positive statements about the community.  
+
+```{r label=Barriers}
+HealthyCommunityFactors %>%
+  pivot_longer(4:(ncol(HealthyCommunityFactors)), names_to = "IndivItems") %>%
+  group_by(IndivItems) %>%
+  summarise(Count = sum(value, na.rm = TRUE)) %>%
+  mutate(Percentage = scales::percent(Count/TotalRouttRespondents)) %>%
+  arrange(desc(Count)) %>%
+  kable(caption = "Select the factors important to a healthy community (up to 3)")
+
+```
+
+
+## Health Problems  
+Includes data from the following survey questions:  
+
+- Select the three drugs misuse or abuse you are most concerned about.  
+- Select the three drugs misuse or abuse you are most concerned about. OPEN ENDED  
+- Select the three factors which you feel you would like to see more of in Yampa Valley.  
+- Select the three factors which you feel you would like to see more of in Yampa Valley. OPEN ENDED  
+- Level of agreement with specific positive statements about the community. 
+
+## Access to Services  
+Includes data from the following survey questions:  
+
+Did you or your family need or use _____ in the past 12 months?   
+
+- services for children/youth with emotional problems or delinquent behavior  
+- treatment or counseling for alcohol or drug addiction   
+- low- or no-cost dental/oral health services   
+- mental health services   
+- parenting information, training, or classes   
+- child care/daycare financial assistance (including CCCAP)   
+- physical or mental health care because of sexual assault or physical abuse   
+- work-related/employment services (help finding work or job training)   
+- financial assistance (unemployment, Colorado Works/TANF, Social Security)   
+- housing services (rental/utility bill assistance, LEAP, or shelters)   
+- transportation assistance services (vouchers, reimbursements)    
+
+
+- Select all the reasons you did not receive the support or services you needed.  
+- Select all the reasons you did not receive the support or services you needed. OPEN ENDED  
+- On average, how much time does it take you to travel to see a doctor or other health care provider?  
+- Select the challenges faced in getting the care you needed or wanted.  
+- Select the challenges faced in getting the care you needed or wanted. OPEN ENDED  
+- Have you avoided or delayed important health care services because of fear or discomfort?  
+- Select all the reasons you were worried that your concerns would not be taken seriously or would not be treated fairly.  
+- Select all the reasons you were worried that your concerns would not be taken seriously or would not be treated fairly. OPEN ENDED  
+- Do you have a primary health care provider whom you see regularly?  
+- What is your primary source of health care coverage?  
+- What is your primary source of health care coverage? OPEN ENDED  
+- About how long has it been since you last had health care coverage?           
+
+```{r label=Barriers}
+Barriers %>%
+  pivot_longer(4:(ncol(Barriers)), names_to = "IndivItems") %>%
+  group_by(IndivItems) %>%
+  summarise(Count = sum(value, na.rm = TRUE)) %>%
+  mutate(Percentage = scales::percent(Count/sum(Count))) %>%
+  arrange(desc(Count)) %>%
+  kable(caption = "Select the challenges faced in getting the care you needed or wanted (up to 3)")
+
+```
+
+## Community Resources  
+Includes data from the following survey questions:  
+
+- Select up to three places or people you turn to When you are sick or need health advice.  
+- Select up to three places or people you turn to When you are sick or need health advice. OPEN ENDED  
+- Select up to three places you go if you need help getting non-medical resources.  
+- Select up to three places you go if you need help getting non-medical resources. OPEN ENDED  
+- Which of the following best describes the services and resources you rely on in your community.  
+- Which of the following best describes the services and resources you rely on in your community. OPEN ENDED"  
+ 
+## Priority Areas  
+Includes data from the following survey questions:  
+
+- What are the top three areas of health and well-being would you want Yampa Valley to prioritize as it considers where to focus improvement efforts?  
+- What are the top three areas of health and well-being would you want Yampa Valley to prioritize as it considers where to focus improvement efforts? OPEN ENDED  
+- What does Yampa Valley need and/or need to do to ensure it is a place where all individuals can live up to their fullest potential?"    
+
+## Satisfaction with Community  
+Includes data from the following survey questions:  
+
+- How satisfied are you with your own health?  
+- How satisfied are you with your community's health?  
+- How satisfied are you with the safety in your community?  
+- How satisfied are you with getting the medical care you need?  
+- How satisfied are you with getting the mental health or substance use care you need?  
+- How satisfied are you with getting help during stressful times" 
+ 
+
+## Sources of Worry and Stress  
+Includes data from the following survey questions:  
+
+- How often in the past 12 months were you worried or stressed about having enough money to buy nutritious meals?  
+- How often in the past 12 months were you worried or stressed about paying your rent/mortgage?  
+- How often in the past 12 months were you worried or stressed about paying for gas for a car or other transportation costs?  
+- How often in the past 12 months were you worried or stressed about paying for utilities (electricity, water)?  
+- How often in the past 12 months were you worried or stressed about having internet service?  
+- How often in the past 12 months were you worried or stressed about having Phone/Cell phone service?  
+- How often in the past 12 months were you worried or stressed about paying for clothing?  
+- How often in the past 12 months were you worried or stressed about being able to afford the medical care you need?
+ 
+## COVID Vaccine  
+Includes data from the following survey questions:  
+
+- Have you personally received at least one dose of the COVID-19 vaccine?  
+- MAIN reason why you decided to get vaccinated for COVID-19.  
+- MAIN reason why you decided to get vaccinated for COVID-19. OPEN ENDED  
+- Main reason you have not gotten the COVID-19 vaccine.  
+- Main reason you have not gotten the COVID-19 vaccine. OPEN ENDED"     
+ 
+
+
+# Responses Stratified by Demographics  
+
+## Factors Important for Healthy Community
+Includes data from the following survey questions:  
+
+- Select the three most important factors for a Healthy Community.  
+- Select the three most important factors for a Healthy Community. OPEN ENDED  
+- Select the three factors which you feel you would like to see more of in Yampa Valley.  
+- Select the three factors which you feel you would like to see more of in Yampa Valley. OPEN ENDED  
+- Level of agreement with specific positive statements about the community.  
+
+## Health Problems  
+Includes data from the following survey questions:  
+
+- Select the three drugs misuse or abuse you are most concerned about.  
+- Select the three drugs misuse or abuse you are most concerned about. OPEN ENDED  
+- Select the three factors which you feel you would like to see more of in Yampa Valley.  
+- Select the three factors which you feel you would like to see more of in Yampa Valley. OPEN ENDED  
+- Level of agreement with specific positive statements about the community. 
+
+## Access to Services  
+Includes data from the following survey questions:  
+
+Did you or your family need or use _____ in the past 12 months?    
+
+- services for children/youth with emotional problems or delinquent behavior  
+- treatment or counseling for alcohol or drug addiction   
+- low- or no-cost dental/oral health services   
+- mental health services   
+- parenting information, training, or classes   
+- child care/daycare financial assistance (including CCCAP)   
+- physical or mental health care because of sexual assault or physical abuse   
+- work-related/employment services (help finding work or job training)   
+- financial assistance (unemployment, Colorado Works/TANF, Social Security)   
+- housing services (rental/utility bill assistance, LEAP, or shelters)   
+- transportation assistance services (vouchers, reimbursements)    
+
+- Select all the reasons you did not receive the support or services you needed.  
+- Select all the reasons you did not receive the support or services you needed. OPEN ENDED  
+- On average, how much time does it take you to travel to see a doctor or other health care provider?  
+- Select the challenges faced in getting the care you needed or wanted.  
+- Select the challenges faced in getting the care you needed or wanted. OPEN ENDED  
+- Have you avoided or delayed important health care services because of fear or discomfort?  
+- Select all the reasons you were worried that your concerns would not be taken seriously or would not be treated fairly.  
+- Select all the reasons you were worried that your concerns would not be taken seriously or would not be treated fairly. OPEN ENDED  
+- Do you have a primary health care provider whom you see regularly?  
+- What is your primary source of health care coverage?  
+- What is your primary source of health care coverage? OPEN ENDED  
+- About how long has it been since you last had health care coverage?           
+
+## Community Resources  
+Includes data from the following survey questions:  
+
+- Select up to three places or people you turn to When you are sick or need health advice.  
+- Select up to three places or people you turn to When you are sick or need health advice. OPEN ENDED  
+- Select up to three places you go if you need help getting non-medical resources.  
+- Select up to three places you go if you need help getting non-medical resources. OPEN ENDED  
+- Which of the following best describes the services and resources you rely on in your community.  
+- Which of the following best describes the services and resources you rely on in your community. OPEN ENDED"  
+ 
+## Priority Areas  
+Includes data from the following survey questions:  
+
+- What are the top three areas of health and well-being would you want Yampa Valley to prioritize as it considers where to focus improvement efforts?  
+- What are the top three areas of health and well-being would you want Yampa Valley to prioritize as it considers where to focus improvement efforts? OPEN ENDED  
+- What does Yampa Valley need and/or need to do to ensure it is a place where all individuals can live up to their fullest potential?"    
+
+## Satisfaction with Community  
+Includes data from the following survey questions:  
+
+- How satisfied are you with your own health?  
+- How satisfied are you with your community's health?  
+- How satisfied are you with the safety in your community?  
+- How satisfied are you with getting the medical care you need?  
+- How satisfied are you with getting the mental health or substance use care you need?  
+- How satisfied are you with getting help during stressful times" 
+ 
+
+## Sources of Worry and Stress  
+Includes data from the following survey questions:  
+
+- How often in the past 12 months were you worried or stressed about having enough money to buy nutritious meals?  
+- How often in the past 12 months were you worried or stressed about paying your rent/mortgage?  
+- How often in the past 12 months were you worried or stressed about paying for gas for a car or other transportation costs?  
+- How often in the past 12 months were you worried or stressed about paying for utilities (electricity, water)?  
+- How often in the past 12 months were you worried or stressed about having internet service?  
+- How often in the past 12 months were you worried or stressed about having Phone/Cell phone service?  
+- How often in the past 12 months were you worried or stressed about paying for clothing?  
+- How often in the past 12 months were you worried or stressed about being able to afford the medical care you need?
+ 
+## COVID Vaccine  
+Includes data from the following survey questions:  
+
+- Have you personally received at least one dose of the COVID-19 vaccine?  
+- MAIN reason why you decided to get vaccinated for COVID-19.  
+- MAIN reason why you decided to get vaccinated for COVID-19. OPEN ENDED  
+- Main reason you have not gotten the COVID-19 vaccine.  
+- Main reason you have not gotten the COVID-19 vaccine. OPEN ENDED"     
+ 
